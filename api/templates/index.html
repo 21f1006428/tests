@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSV Importer</title>
+  <style>
+   body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #3498db; /* Light blue background color for the entire page */
+    }
+
+    #drop-zone {
+      border: 2px dashed #ccc;
+      width: 200px; /* Adjust the width to your desired size */
+      height: 100px; /* Adjust the height to your desired size */
+      text-align: center;
+      padding: 20px;
+      font-size: 16px; /* Adjust the font size */
+      cursor: pointer;
+      background-color: #2ecc71; /* Light green background color for the box */
+      color: white; /* Text color */
+      border-radius: 10px; /* Rounded corners for the box */
+      transition: background-color 0.3s ease; /* Smooth transition for background color */
+    }
+
+    #drop-zone.dragover {
+      border-color: #007bff;
+    }
+
+    /* Style the file input */
+    #file-input {
+      display: none;
+    }
+    #choose-button {
+      text-decoration: none;
+      color: white;
+      background-color: #3498db; /* Light blue background color for the button */
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease; /* Smooth transition for background color */
+      display: inline-block; /* Makes it look like a button */
+    }
+
+    /* Hover effect for the button */
+    #choose-button:hover {
+      background-color: #007bff; /* Darker blue on hover */
+      text-decoration: underline;
+    }
+    /* Hover effect for the box */
+    #drop-zone:hover {
+      background-color: #27ae60; /* Darker green on hover */
+    }
+
+    /* Sliding panel styles */
+    #panel-container {
+      position: fixed;
+      top: 0;
+      left: -300px; /* Start the panel off-screen */
+      width: 300px;
+      height: 100%;
+      background-color: #fff;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+      transition: left 0.3s ease;
+    }
+
+    #column-selector {
+      padding: 20px;
+    }
+
+    .column-checkbox {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    #import-button {
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;}
+    .custom-file-upload {
+  cursor: pointer;
+  background-color: #3498db;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.custom-file-upload:hover {
+  background-color: #007bff;
+  text-decoration: underline;
+}
+
+
+  </style>
+</head>
+<body>
+  <form id="file-form" action="/import" method="POST" enctype="multipart/form-data">
+  <div for="file-input" id="drop-zone" class="drop-zone">
+    <p><label for="file-input" id="choose-button" class="custom-file-upload">Choose a CSV File</label></p>
+    <input type="file" id="file-input">
+  </div>
+  </form>
+
+  <div id="file-info">
+    <!-- File information will be displayed here -->
+  </div>
+
+  <div id="panel-container">
+    <div id="column-selector">
+      <p>Select columns to import:</p>
+      <!-- Checkbox elements for column selection -->
+      <!-- Column names will be populated dynamically -->
+    </div>
+    <button id="import-button">Import</button>
+  </div>
+  <div id="import-result"></div>
+
+  <script>
+    var dropZone = document.getElementById('drop-zone');
+    var fileInput = document.getElementById('file-input');
+    var fileInfo = document.getElementById('file-info');
+    var panelContainer = document.getElementById('panel-container');
+    var importButton = document.getElementById('import-button');
+    var selectedColumns = [];
+
+    // Prevent the default behavior for drag-and-drop events
+    dropZone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', function () {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+
+      var files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFile(files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', function () {
+      if (fileInput.files.length > 0) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+
+    function handleFile(file) {
+      fileInfo.innerHTML = '';
+      var fileName = document.createElement('p');
+      fileName.textContent = 'File Name: ' + file.name;
+      var fileSize = document.createElement('p');
+      fileSize.textContent = 'File Size: ' + (file.size / 1024).toFixed(2) + ' KB';
+      fileInfo.appendChild(fileName);
+      fileInfo.appendChild(fileSize);
+
+      // Read the first few lines of the CSV to extract column names
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var contents = e.target.result;
+        var lines = contents.split('\n');
+        if (lines.length > 0) {
+          var headerRow = lines[0].split(',');
+          var columnSelector = document.getElementById('column-selector');
+          columnSelector.innerHTML = ''; // Clear previous checkboxes
+          headerRow.forEach(function (column) {
+            var checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'column';
+            checkbox.value = column;
+            checkbox.className = 'column-checkbox';
+            var label = document.createElement('label');
+            label.textContent = column;
+            label.appendChild(checkbox);
+            columnSelector.appendChild(label);
+          });
+        }
+        // Show the panel with animation
+        panelContainer.style.left = '0';
+      };
+      reader.readAsText(file);
+    }
+
+    // Event listener for the Import button
+    importButton.addEventListener('click', function () {
+      selectedColumns = [];
+      var checkboxes = document.querySelectorAll('input[name="column"]:checked');
+      checkboxes.forEach(function (checkbox) {
+        selectedColumns.push(checkbox.value);
+        console.log(selectedColumns)
+      });
+      // Create a FormData object to send data to the server
+    var formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('columns', selectedColumns);
+
+  // Send the FormData to the server using a POST request
+  fetch('/import', {
+    method: 'POST',
+    body: formData,
+  })
+    .then(function (response) {
+      // Handle the server's response here
+      return response.json();
+    })
+    .then(function (data) {
+      console.log(data);
+      var importResult = document.getElementById('import-result');
+      var link = document.createElement('a');
+      link.href = data.worksheet_url;
+      importResult.textContent = data.success || data.error;
+      link.textContent = 'Google Sheets';
+    link.target = '_blank'; // Open the link in a new tab
+    importResult.appendChild(link);
+    })
+    .catch(function (error) {
+      console.error('Error:', error);
+    });
+
+  // Hide the panel with animation
+  panelContainer.style.left = '-300px';
+});
+  </script>
+</body>
+</html>
+
+
