@@ -1,0 +1,14 @@
+ {
+     "builds": [
+         {
+             "src": "api/csvimporter.py",
+             "use": "@vercel/python"
+         }
+     ],
+     "routes": [
+         {
+             "src": "/(.*)",
+             "dest": "api/csvimporter.py"
+         }
+     ]
+ }
