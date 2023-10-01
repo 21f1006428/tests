@@ -11,7 +11,13 @@ app = Flask(__name__)
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 json_keyfile_path = 'sheets-400705-3eea117bda5e.json'  # Replace with the path to your JSON key file
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(json_keyfile_path, scope)
+# Load the Google Sheets JSON key content from an environment variable
+json_key_content = config('GOOGLE_SHEETS_JSON_KEY')
+
+# Create ServiceAccountCredentials from the JSON key content
+creds = ServiceAccountCredentials.from_json_keyfile_dict(json_key_content, scope)
+
+# Authorize the client
 client = gspread.authorize(creds)
 
 # Function to create a new Google Sheets spreadsheet
