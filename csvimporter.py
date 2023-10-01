@@ -26,7 +26,7 @@ def share_worksheet(spreadsheet):
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('import.html')
+    return render_template('index.html')
 
 @app.route('/import', methods=['POST'])
 def import_to_google_sheets():
